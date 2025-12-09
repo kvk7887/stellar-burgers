@@ -34,9 +34,8 @@ const ingredientsSlice = createSlice({
       state.error = null;
     },
     fetchIngredientsSuccess: (state, action: PayloadAction<TIngredient[]>) => {
-      state.items = action.payload;
       state.isLoading = false;
-      state.error = null;
+      state.items = action.payload;
     },
     fetchIngredientsFailure: (state, action: PayloadAction<string>) => {
       state.isLoading = false;

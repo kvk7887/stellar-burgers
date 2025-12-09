@@ -61,24 +61,46 @@ const constructorSlice = createSlice({
         id: uuidv4()
       };
     },
+
     // Добавление ингредиента
     addIngredient: (state, action: PayloadAction<TIngredient>) => {
+      // Убеждаемся, что ingredients инициализирован как массив
+      if (!Array.isArray(state.ingredients)) {
+        state.ingredients = [];
+      }
       state.ingredients.push({
         ...action.payload,
         id: uuidv4()
       });
     },
     // Удаление ингредиента по индексу
-    removeIngredient: (state, action: PayloadAction<number>) => {
-      state.ingredients.splice(action.payload, 1);
+    clearConstructor: (state) => {
+      state.bun = null;
+      state.ingredients = [];
+      state.orderModalData = null;
     },
     // Удаление ингредиента по id
-    removeIngredientById: (state, action: PayloadAction<string>) => {
-      state.ingredients = state.ingredients.filter(
-        (item) => item.id !== action.payload
-      );
+    closeOrderModal: (state) => {
+      state.orderModalData = null;
     },
     // Перемещение ингредиента (для drag & drop)
+    createOrderFailure: (state, action: PayloadAction<string>) => {
+      state.orderRequest = false;
+    },
+    // Очистка конструктора
+    createOrderRequest: (state) => {
+      state.orderRequest = true;
+      state.orderModalData = null;
+    },
+    // Запрос на создание заказа
+    createOrderSuccess: (state, action: PayloadAction<TNewOrderResponse>) => {
+      state.orderRequest = false;
+      state.orderModalData = action.payload;
+      // Очищаем конструктор после успешного заказа
+      state.bun = null;
+      state.ingredients = [];
+    },
+    // Успешное создание заказа
     moveIngredient: (
       state,
       action: PayloadAction<{ dragIndex: number; hoverIndex: number }>
@@ -88,32 +110,15 @@ const constructorSlice = createSlice({
       state.ingredients.splice(dragIndex, 1);
       state.ingredients.splice(hoverIndex, 0, draggedItem);
     },
-    // Очистка конструктора
-    clearConstructor: (state) => {
-      state.bun = null;
-      state.ingredients = [];
-      state.orderModalData = null;
-    },
-    // Запрос на создание заказа
-    createOrderRequest: (state) => {
-      state.orderRequest = true;
-      state.orderModalData = null;
-    },
-    // Успешное создание заказа
-    createOrderSuccess: (state, action: PayloadAction<TNewOrderResponse>) => {
-      state.orderRequest = false;
-      state.orderModalData = action.payload;
-      // Очищаем конструктор после успешного заказа
-      state.bun = null;
-      state.ingredients = [];
-    },
     // Ошибка при создании заказа
-    createOrderFailure: (state, action: PayloadAction<string>) => {
-      state.orderRequest = false;
+    removeIngredient: (state, action: PayloadAction<number>) => {
+      state.ingredients.splice(action.payload, 1);
     },
     // Закрытие модального окна заказа
-    closeOrderModal: (state) => {
-      state.orderModalData = null;
+    removeIngredientById: (state, action: PayloadAction<string>) => {
+      state.ingredients = state.ingredients.filter(
+        (item) => item._id !== action.payload
+      );
     }
   }
 });
