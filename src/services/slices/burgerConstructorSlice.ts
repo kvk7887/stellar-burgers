@@ -26,7 +26,7 @@ const initialState: ConstructorState = {
 // Thunk для создания заказа
 export const createOrder = (): AppThunk => async (dispatch, getState) => {
   const state = getState();
-  const { bun, ingredients } = state.constructor;
+  const { bun, ingredients } = state.burgerConstructor;
 
   // Проверяем, что есть булка
   if (!bun) {
@@ -50,8 +50,8 @@ export const createOrder = (): AppThunk => async (dispatch, getState) => {
   }
 };
 
-const constructorSlice = createSlice({
-  name: 'constructor',
+const burgerConstructorSlice = createSlice({
+  name: 'burgerConstructor',
   initialState,
   reducers: {
     // Добавление булки
@@ -72,12 +72,6 @@ const constructorSlice = createSlice({
         ...action.payload,
         id: uuidv4()
       });
-    },
-    // Удаление ингредиента по индексу
-    clearConstructor: (state) => {
-      state.bun = null;
-      state.ingredients = [];
-      state.orderModalData = null;
     },
     // Удаление ингредиента по id
     closeOrderModal: (state) => {
@@ -110,14 +104,10 @@ const constructorSlice = createSlice({
       state.ingredients.splice(dragIndex, 1);
       state.ingredients.splice(hoverIndex, 0, draggedItem);
     },
-    // Ошибка при создании заказа
-    removeIngredient: (state, action: PayloadAction<number>) => {
-      state.ingredients.splice(action.payload, 1);
-    },
     // Закрытие модального окна заказа
     removeIngredientById: (state, action: PayloadAction<string>) => {
       state.ingredients = state.ingredients.filter(
-        (item) => item._id !== action.payload
+        (item) => item.id !== action.payload
       );
     }
   }
@@ -126,14 +116,12 @@ const constructorSlice = createSlice({
 export const {
   addBun,
   addIngredient,
-  removeIngredient,
   removeIngredientById,
   moveIngredient,
-  clearConstructor,
   createOrderRequest,
   createOrderSuccess,
   createOrderFailure,
   closeOrderModal
-} = constructorSlice.actions;
+} = burgerConstructorSlice.actions;
 
-export const constructorReducer = constructorSlice.reducer;
+export const burgerConstructorReducer = burgerConstructorSlice.reducer;

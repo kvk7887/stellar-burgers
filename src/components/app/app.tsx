@@ -1,7 +1,8 @@
 import '../../index.css';
 import styles from './app.module.css';
 
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import type { Location } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from '../../services/store';
 import { getUser, setAuthChecked } from '../../services/slices/userSlice';
@@ -30,18 +31,18 @@ import {
 const App = () => {
   const dispatch = useDispatch();
   const isAuthChecked = useSelector(selectIsAuthChecked);
+  const location = useLocation();
+  const state = location.state as { background?: Location } | undefined;
+  const background = state?.background;
 
   useEffect(() => {
-    // Проверяем авторизацию при старте, если еще не проверяли
     if (!isAuthChecked) {
-      // Проверяем наличие токена перед запросом
       const accessToken = getCookie('accessToken');
       const refreshToken = localStorage.getItem('refreshToken');
 
       if (accessToken || refreshToken) {
         dispatch(getUser());
       } else {
-        // Если токенов нет, помечаем как проверенное
         dispatch(setAuthChecked());
       }
     }
@@ -50,9 +51,12 @@ const App = () => {
   return (
     <div className={styles.app}>
       <AppHeader />
-      <Routes>
+
+      {/* Основные страницы (фон) */}
+      <Routes location={background || location}>
         <Route path='/' element={<ConstructorPage />} />
         <Route path='/feed' element={<Feed />} />
+        <Route path='/feed/:number' element={<OrderInfo />} />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
@@ -73,43 +77,58 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        <Route path='*' element={<NotFound404 />} />
-        <Route
-          path='/feed/:number'
-          element={
-            <Modal
-              onClose={() => window.history.back()}
-              title='Информация о заказе'
-            >
-              <OrderInfo />
-            </Modal>
-          }
-        />
-        <Route
-          path='/ingredients/:id'
-          element={
-            <Modal
-              onClose={() => window.history.back()}
-              title='Детали ингредиента'
-            >
-              <IngredientDetails />
-            </Modal>
-          }
-        />
         <Route
           path='/profile/orders/:number'
           element={
             <ProtectedRoute>
+              <OrderInfo />
+            </ProtectedRoute>
+          }
+        />
+        <Route path='/ingredients/:id' element={<IngredientDetails />} />
+        <Route path='*' element={<NotFound404 />} />
+      </Routes>
+
+      {/* Модалки поверх фона */}
+      {background && (
+        <Routes>
+          <Route
+            path='/feed/:number'
+            element={
               <Modal
                 onClose={() => window.history.back()}
                 title='Информация о заказе'
               >
                 <OrderInfo />
               </Modal>
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
+            }
+          />
+          <Route
+            path='/ingredients/:id'
+            element={
+              <Modal
+                onClose={() => window.history.back()}
+                title='Детали ингредиента'
+              >
+                <IngredientDetails />
+              </Modal>
+            }
+          />
+          <Route
+            path='/profile/orders/:number'
+            element={
+              <ProtectedRoute>
+                <Modal
+                  onClose={() => window.history.back()}
+                  title='Информация о заказе'
+                >
+                  <OrderInfo />
+                </Modal>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      )}
     </div>
   );
 };

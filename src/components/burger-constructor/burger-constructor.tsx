@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from '../../services/store';
 import {
   closeOrderModal,
   createOrder
-} from '../../services/slices/constructorSlice';
+} from '../../services/slices/burgerConstructorSlice';
 import { selectConstructor } from '../../services/selectors/constructorSelectors';
 import {
   selectUser,

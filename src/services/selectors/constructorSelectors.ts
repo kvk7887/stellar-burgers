@@ -1,3 +1,3 @@
 import { RootState } from '../store';
 
-export const selectConstructor = (state: RootState) => state.constructor;
+export const selectConstructor = (state: RootState) => state.burgerConstructor;
