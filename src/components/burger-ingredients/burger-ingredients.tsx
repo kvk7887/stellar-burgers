@@ -3,8 +3,7 @@ import { useInView } from 'react-intersection-observer';
 
 import { TTabMode, TIngredient } from '@utils-types';
 import { BurgerIngredientsUI } from '../ui/burger-ingredients';
-import { useDispatch, useSelector } from '../../services/store';
-import { fetchIngredients } from '../../services/slices/ingredientsSlice';
+import { useSelector } from '../../services/store';
 import {
   selectBuns,
   selectMains,
@@ -13,8 +12,6 @@ import {
 } from '../../services/selectors/ingredientsSelectors';
 
 export const BurgerIngredients: FC = () => {
-  const dispatch = useDispatch();
-
   // Используем созданные селекторы с явной типизацией
   const buns: TIngredient[] = useSelector(selectBuns);
   const mains: TIngredient[] = useSelector(selectMains);
@@ -39,13 +36,6 @@ export const BurgerIngredients: FC = () => {
   });
 
   // Загружаем ингредиенты при монтировании компонента
-  useEffect(() => {
-    // Загружаем только если данных еще нет
-    if (ingredients.length === 0) {
-      dispatch(fetchIngredients());
-    }
-  }, [dispatch, ingredients.length]);
-
   useEffect(() => {
     if (inViewBuns) {
       setCurrentTab('bun');

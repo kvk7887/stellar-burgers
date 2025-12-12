@@ -34,7 +34,7 @@ export const ResetPassword: FC = () => {
     e.preventDefault();
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('token') || token;
-    dispatch(resetPassword(password, tokenFromUrl));
+    dispatch(resetPassword({ password, token: tokenFromUrl }));
   };
 
   return (

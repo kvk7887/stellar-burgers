@@ -1,8 +1,7 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { v4 as uuidv4 } from 'uuid';
-import { TConstructorIngredient, TIngredient, TOrder } from '@utils-types';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { TConstructorIngredient, TOrder } from '@utils-types';
 import { orderBurgerApi } from '@api';
-import { AppThunk } from '../store';
+import { RootState } from '../store';
 
 type TNewOrderResponse = {
   order: TOrder;
@@ -23,18 +22,21 @@ const initialState: ConstructorState = {
   orderModalData: null
 };
 
-// Thunk для создания заказа
-export const createOrder = (): AppThunk => async (dispatch, getState) => {
+// Async thunk для создания заказа
+export const createOrder = createAsyncThunk<
+  TNewOrderResponse,
+  void,
+  { state: RootState; rejectValue: string }
+>('burgerConstructor/createOrder', async (_, { getState, rejectWithValue }) => {
   const state = getState();
   const { bun, ingredients } = state.burgerConstructor;
 
   // Проверяем, что есть булка
   if (!bun) {
-    return;
+    return rejectWithValue('Необходимо выбрать булку');
   }
 
   // Формируем массив ID ингредиентов для заказа
-  // Булки должны быть в начале и конце
   const ingredientsIds: string[] = [
     bun._id,
     ...ingredients.map((item) => item._id),
@@ -42,59 +44,36 @@ export const createOrder = (): AppThunk => async (dispatch, getState) => {
   ];
 
   try {
-    dispatch(createOrderRequest());
     const data = await orderBurgerApi(ingredientsIds);
-    dispatch(createOrderSuccess(data));
+    return data;
   } catch (e) {
-    dispatch(createOrderFailure('Ошибка при создании заказа'));
+    return rejectWithValue('Ошибка при создании заказа');
   }
-};
+});
 
 const burgerConstructorSlice = createSlice({
   name: 'burgerConstructor',
   initialState,
   reducers: {
     // Добавление булки
-    addBun: (state, action: PayloadAction<TIngredient>) => {
-      state.bun = {
-        ...action.payload,
-        id: uuidv4()
-      };
+    addBun: (state, action: PayloadAction<TConstructorIngredient>) => {
+      state.bun = action.payload;
     },
 
     // Добавление ингредиента
-    addIngredient: (state, action: PayloadAction<TIngredient>) => {
-      // Убеждаемся, что ingredients инициализирован как массив
+    addIngredient: (state, action: PayloadAction<TConstructorIngredient>) => {
       if (!Array.isArray(state.ingredients)) {
         state.ingredients = [];
       }
-      state.ingredients.push({
-        ...action.payload,
-        id: uuidv4()
-      });
+      state.ingredients.push(action.payload);
     },
-    // Удаление ингредиента по id
+
+    // Закрытие модального окна заказа
     closeOrderModal: (state) => {
       state.orderModalData = null;
     },
+
     // Перемещение ингредиента (для drag & drop)
-    createOrderFailure: (state, action: PayloadAction<string>) => {
-      state.orderRequest = false;
-    },
-    // Очистка конструктора
-    createOrderRequest: (state) => {
-      state.orderRequest = true;
-      state.orderModalData = null;
-    },
-    // Запрос на создание заказа
-    createOrderSuccess: (state, action: PayloadAction<TNewOrderResponse>) => {
-      state.orderRequest = false;
-      state.orderModalData = action.payload;
-      // Очищаем конструктор после успешного заказа
-      state.bun = null;
-      state.ingredients = [];
-    },
-    // Успешное создание заказа
     moveIngredient: (
       state,
       action: PayloadAction<{ dragIndex: number; hoverIndex: number }>
@@ -104,12 +83,30 @@ const burgerConstructorSlice = createSlice({
       state.ingredients.splice(dragIndex, 1);
       state.ingredients.splice(hoverIndex, 0, draggedItem);
     },
-    // Закрытие модального окна заказа
+
+    // Удаление ингредиента по id
     removeIngredientById: (state, action: PayloadAction<string>) => {
       state.ingredients = state.ingredients.filter(
         (item) => item.id !== action.payload
       );
     }
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(createOrder.pending, (state) => {
+        state.orderRequest = true;
+        state.orderModalData = null;
+      })
+      .addCase(createOrder.fulfilled, (state, action) => {
+        state.orderRequest = false;
+        state.orderModalData = action.payload;
+        // Очищаем конструктор после успешного заказа
+        state.bun = null;
+        state.ingredients = [];
+      })
+      .addCase(createOrder.rejected, (state) => {
+        state.orderRequest = false;
+      });
   }
 });
 
@@ -118,9 +115,6 @@ export const {
   addIngredient,
   removeIngredientById,
   moveIngredient,
-  createOrderRequest,
-  createOrderSuccess,
-  createOrderFailure,
   closeOrderModal
 } = burgerConstructorSlice.actions;
 

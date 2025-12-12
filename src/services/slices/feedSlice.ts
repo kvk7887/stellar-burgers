@@ -1,7 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { TOrder, TOrdersData } from '@utils-types';
 import { getFeedsApi } from '@api';
-import { AppThunk } from '../store';
 
 export interface FeedState {
   orders: TOrder[];
@@ -19,39 +18,41 @@ const initialState: FeedState = {
   error: null
 };
 
-export const fetchFeeds = (): AppThunk => async (dispatch) => {
+export const fetchFeeds = createAsyncThunk<
+  TOrdersData,
+  void,
+  { rejectValue: string }
+>('feed/fetchFeeds', async (_, { rejectWithValue }) => {
   try {
-    dispatch(fetchFeedsRequest());
     const data = await getFeedsApi();
-    dispatch(fetchFeedsSuccess(data));
+    return data;
   } catch (e) {
-    dispatch(fetchFeedsFailure('Ошибка при загрузке ленты заказов'));
+    return rejectWithValue('Ошибка при загрузке ленты заказов');
   }
-};
+});
 
 const feedSlice = createSlice({
   name: 'feed',
   initialState,
-  reducers: {
-    fetchFeedsRequest: (state) => {
-      state.isLoading = true;
-      state.error = null;
-    },
-    fetchFeedsSuccess: (state, action: PayloadAction<TOrdersData>) => {
-      state.orders = action.payload.orders;
-      state.total = action.payload.total;
-      state.totalToday = action.payload.totalToday;
-      state.isLoading = false;
-      state.error = null;
-    },
-    fetchFeedsFailure: (state, action: PayloadAction<string>) => {
-      state.isLoading = false;
-      state.error = action.payload;
-    }
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchFeeds.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchFeeds.fulfilled, (state, action) => {
+        state.orders = action.payload.orders;
+        state.total = action.payload.total;
+        state.totalToday = action.payload.totalToday;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(fetchFeeds.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Ошибка при загрузке ленты заказов';
+      });
   }
 });
-
-export const { fetchFeedsRequest, fetchFeedsSuccess, fetchFeedsFailure } =
-  feedSlice.actions;
 
 export const feedReducer = feedSlice.reducer;

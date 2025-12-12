@@ -1,7 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { TOrder } from '@utils-types';
 import { getOrdersApi } from '@api';
-import { AppThunk } from '../store';
 
 export interface OrdersState {
   orders: TOrder[];
@@ -15,37 +14,39 @@ const initialState: OrdersState = {
   error: null
 };
 
-export const fetchOrders = (): AppThunk => async (dispatch) => {
+export const fetchOrders = createAsyncThunk<
+  TOrder[],
+  void,
+  { rejectValue: string }
+>('orders/fetchOrders', async (_, { rejectWithValue }) => {
   try {
-    dispatch(fetchOrdersRequest());
     const data = await getOrdersApi();
-    dispatch(fetchOrdersSuccess(data));
+    return data;
   } catch (e) {
-    dispatch(fetchOrdersFailure('Ошибка при загрузке заказов'));
+    return rejectWithValue('Ошибка при загрузке заказов');
   }
-};
+});
 
 const ordersSlice = createSlice({
   name: 'orders',
   initialState,
-  reducers: {
-    fetchOrdersRequest: (state) => {
-      state.isLoading = true;
-      state.error = null;
-    },
-    fetchOrdersSuccess: (state, action: PayloadAction<TOrder[]>) => {
-      state.orders = action.payload;
-      state.isLoading = false;
-      state.error = null;
-    },
-    fetchOrdersFailure: (state, action: PayloadAction<string>) => {
-      state.isLoading = false;
-      state.error = action.payload;
-    }
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchOrders.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchOrders.fulfilled, (state, action) => {
+        state.orders = action.payload;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(fetchOrders.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Ошибка при загрузке заказов';
+      });
   }
 });
-
-export const { fetchOrdersRequest, fetchOrdersSuccess, fetchOrdersFailure } =
-  ordersSlice.actions;
 
 export const ordersReducer = ordersSlice.reducer;

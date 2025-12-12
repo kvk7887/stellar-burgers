@@ -13,7 +13,10 @@ import {
   selectOrderIngredients,
   selectOrderDetailsLoading
 } from '../../services/selectors/orderDetailsSelectors';
-import { selectIngredients } from '../../services/selectors/ingredientsSelectors';
+import {
+  selectIngredients,
+  selectIngredientsLoading
+} from '../../services/selectors/ingredientsSelectors';
 
 export const OrderInfo: FC = () => {
   const dispatch = useDispatch();
@@ -22,6 +25,7 @@ export const OrderInfo: FC = () => {
   const ingredients = useSelector(selectOrderIngredients);
   const allIngredients = useSelector(selectIngredients);
   const isLoading = useSelector(selectOrderDetailsLoading);
+  const isIngredientsLoading = useSelector(selectIngredientsLoading);
 
   useEffect(() => {
     if (number) {
@@ -79,7 +83,21 @@ export const OrderInfo: FC = () => {
     };
   }, [orderData, ingredients]);
 
-  if (isLoading || !orderInfo) {
+  // Показываем прелоадер только во время загрузки заказа или ингредиентов
+  if (
+    isLoading ||
+    isIngredientsLoading ||
+    (orderData && !ingredients.length && allIngredients.length === 0)
+  ) {
+    return <Preloader />;
+  }
+
+  // Если заказ загружен, но ингредиенты еще не обработаны, показываем прелоадер
+  if (orderData && allIngredients.length > 0 && !ingredients.length) {
+    return <Preloader />;
+  }
+
+  if (!orderInfo) {
     return <Preloader />;
   }
 

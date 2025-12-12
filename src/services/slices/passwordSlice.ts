@@ -1,6 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { forgotPasswordApi, resetPasswordApi } from '@api';
-import { AppThunk } from '../store';
 
 export interface PasswordState {
   isEmailSent: boolean;
@@ -16,76 +15,76 @@ const initialState: PasswordState = {
   error: null
 };
 
-export const forgotPassword =
-  (email: string): AppThunk =>
-  async (dispatch) => {
-    try {
-      dispatch(forgotPasswordRequest());
-      await forgotPasswordApi({ email });
-      dispatch(forgotPasswordSuccess());
-    } catch (e) {
-      dispatch(forgotPasswordFailure('Ошибка при отправке письма'));
-    }
-  };
+export const forgotPassword = createAsyncThunk<
+  void,
+  string,
+  { rejectValue: string }
+>('password/forgotPassword', async (email, { rejectWithValue }) => {
+  try {
+    await forgotPasswordApi({ email });
+  } catch (e) {
+    return rejectWithValue('Ошибка при отправке письма');
+  }
+});
 
-export const resetPassword =
-  (password: string, token: string): AppThunk =>
-  async (dispatch) => {
+export const resetPassword = createAsyncThunk<
+  void,
+  { password: string; token: string },
+  { rejectValue: string }
+>(
+  'password/resetPassword',
+  async ({ password, token }, { rejectWithValue }) => {
     try {
-      dispatch(resetPasswordRequest());
       await resetPasswordApi({ password, token });
-      dispatch(resetPasswordSuccess());
     } catch (e) {
-      dispatch(resetPasswordFailure('Ошибка при сбросе пароля'));
+      return rejectWithValue('Ошибка при сбросе пароля');
     }
-  };
+  }
+);
 
 const passwordSlice = createSlice({
   name: 'password',
   initialState,
   reducers: {
-    forgotPasswordRequest: (state) => {
-      state.isLoading = true;
-      state.error = null;
-    },
-    forgotPasswordSuccess: (state) => {
-      state.isEmailSent = true;
-      state.isLoading = false;
-      state.error = null;
-    },
-    forgotPasswordFailure: (state, action: PayloadAction<string>) => {
-      state.isLoading = false;
-      state.error = action.payload;
-    },
-    resetPasswordRequest: (state) => {
-      state.isLoading = true;
-      state.error = null;
-    },
-    resetPasswordSuccess: (state) => {
-      state.isPasswordReset = true;
-      state.isLoading = false;
-      state.error = null;
-    },
-    resetPasswordFailure: (state, action: PayloadAction<string>) => {
-      state.isLoading = false;
-      state.error = action.payload;
-    },
     clearPasswordState: (state) => {
       state.isEmailSent = false;
       state.isPasswordReset = false;
       state.error = null;
     }
+  },
+  extraReducers: (builder) => {
+    builder
+      // forgotPassword
+      .addCase(forgotPassword.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(forgotPassword.fulfilled, (state) => {
+        state.isEmailSent = true;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Ошибка при отправке письма';
+      })
+      // resetPassword
+      .addCase(resetPassword.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(resetPassword.fulfilled, (state) => {
+        state.isPasswordReset = true;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Ошибка при сбросе пароля';
+      });
   }
 });
 
-export const {
-  forgotPasswordRequest,
-  forgotPasswordSuccess,
-  forgotPasswordFailure,
-  resetPasswordRequest,
-  resetPasswordSuccess,
-  resetPasswordFailure,
-  clearPasswordState
-} = passwordSlice.actions;
+export const { clearPasswordState } = passwordSlice.actions;
 
 export const passwordReducer = passwordSlice.reducer;

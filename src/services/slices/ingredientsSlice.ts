@@ -1,7 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { TIngredient } from '@utils-types';
 import { getIngredientsApi } from '@api';
-import { AppThunk } from '../store';
 
 export interface IngredientsState {
   items: TIngredient[];
@@ -15,38 +14,39 @@ const initialState: IngredientsState = {
   error: null
 };
 
-export const fetchIngredients = (): AppThunk => async (dispatch) => {
+export const fetchIngredients = createAsyncThunk<
+  TIngredient[],
+  void,
+  { rejectValue: string }
+>('ingredients/fetchIngredients', async (_, { rejectWithValue }) => {
   try {
-    dispatch(fetchIngredientsRequest());
     const data = await getIngredientsApi();
-    dispatch(fetchIngredientsSuccess(data));
+    return data;
   } catch (e) {
-    dispatch(fetchIngredientsFailure('Ошибка при загрузке ингредиентов'));
+    return rejectWithValue('Ошибка при загрузке ингредиентов');
   }
-};
+});
 
 const ingredientsSlice = createSlice({
   name: 'ingredients',
   initialState,
-  reducers: {
-    fetchIngredientsRequest: (state) => {
-      state.isLoading = true;
-      state.error = null;
-    },
-    fetchIngredientsSuccess: (state, action: PayloadAction<TIngredient[]>) => {
-      state.isLoading = false;
-      state.items = action.payload;
-    },
-    fetchIngredientsFailure: (state, action: PayloadAction<string>) => {
-      state.isLoading = false;
-      state.error = action.payload;
-    }
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchIngredients.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchIngredients.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.items = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchIngredients.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Ошибка при загрузке ингредиентов';
+      });
   }
 });
 
-export const {
-  fetchIngredientsRequest,
-  fetchIngredientsSuccess,
-  fetchIngredientsFailure
-} = ingredientsSlice.actions;
 export const ingredientsReducer = ingredientsSlice.reducer;

@@ -1,11 +1,12 @@
 import { FC, memo } from 'react';
 import { useLocation, type Location } from 'react-router-dom';
 import { useDispatch } from '../../services/store';
+import { v4 as uuidv4 } from 'uuid';
 import {
   addBun,
   addIngredient
 } from '../../services/slices/burgerConstructorSlice';
-import { TIngredient } from '@utils-types';
+import { TIngredient, TConstructorIngredient } from '@utils-types';
 
 import { BurgerIngredientUI } from '@ui';
 import { TBurgerIngredientProps } from './type';
@@ -13,7 +14,7 @@ import { TBurgerIngredientProps } from './type';
 export const BurgerIngredient: FC<TBurgerIngredientProps> = memo(
   ({ ingredient, count }) => {
     const location = useLocation();
-    // Если фон уже есть, используем его; иначе — текущий location
+
     const background =
       (location.state as { background?: Location } | undefined)?.background ||
       location;
@@ -34,10 +35,15 @@ export const BurgerIngredient: FC<TBurgerIngredientProps> = memo(
     };
 
     const handleAdd = () => {
+      const ingredientWithId: TConstructorIngredient = {
+        ...cleanIngredient,
+        id: uuidv4()
+      };
+
       if (ingredient.type === 'bun') {
-        dispatch(addBun(cleanIngredient));
+        dispatch(addBun(ingredientWithId));
       } else {
-        dispatch(addIngredient(cleanIngredient));
+        dispatch(addIngredient(ingredientWithId));
       }
     };
 
