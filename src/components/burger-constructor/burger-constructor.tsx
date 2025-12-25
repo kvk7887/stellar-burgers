@@ -1,45 +1,71 @@
 import { FC, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TConstructorIngredient } from '@utils-types';
 import { BurgerConstructorUI } from '@ui';
+import { useDispatch, useSelector } from '../../services/store';
+import {
+  closeOrderModal,
+  createOrder
+} from '../../services/slices/burgerConstructorSlice';
+import { selectConstructor } from '../../services/selectors/constructorSelectors';
+import {
+  selectUser,
+  selectIsAuthChecked
+} from '../../services/selectors/userSelectors';
 
 export const BurgerConstructor: FC = () => {
-  /** TODO: взять переменные constructorItems, orderRequest и orderModalData из стора */
-  const constructorItems = {
-    bun: {
-      price: 0
-    },
-    ingredients: []
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { bun, ingredients, orderRequest, orderModalData } = useSelector(
+    selectConstructor
+  ) || {
+    bun: null,
+    ingredients: [],
+    orderRequest: false,
+    orderModalData: null
   };
-
-  const orderRequest = false;
-
-  const orderModalData = null;
+  const user = useSelector(selectUser);
+  const isAuthChecked = useSelector(selectIsAuthChecked);
 
   const onOrderClick = () => {
-    if (!constructorItems.bun || orderRequest) return;
+    if (!bun || orderRequest) return;
+
+    // Проверяем авторизацию перед созданием заказа
+    if (!isAuthChecked) {
+      // Если проверка еще не завершена, ждем
+      return;
+    }
+
+    if (!user) {
+      // Если пользователь не авторизован, перенаправляем на страницу логина
+      navigate('/login', { state: { from: '/' } });
+      return;
+    }
+
+    // Если пользователь авторизован, создаем заказ
+    dispatch(createOrder());
   };
-  const closeOrderModal = () => {};
+
+  const handleCloseOrderModal = () => dispatch(closeOrderModal());
 
   const price = useMemo(
     () =>
-      (constructorItems.bun ? constructorItems.bun.price * 2 : 0) +
-      constructorItems.ingredients.reduce(
+      (bun ? bun.price * 2 : 0) +
+      (ingredients || []).reduce(
         (s: number, v: TConstructorIngredient) => s + v.price,
         0
       ),
-    [constructorItems]
+    [bun, ingredients]
   );
-
-  return null;
 
   return (
     <BurgerConstructorUI
       price={price}
       orderRequest={orderRequest}
-      constructorItems={constructorItems}
-      orderModalData={orderModalData}
+      constructorItems={{ bun, ingredients: ingredients || [] }}
+      orderModalData={orderModalData?.order ?? null}
       onOrderClick={onOrderClick}
-      closeOrderModal={closeOrderModal}
+      closeOrderModal={handleCloseOrderModal}
     />
   );
 };

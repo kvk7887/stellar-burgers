@@ -1,35 +1,45 @@
-import { FC, SyntheticEvent, useEffect, useState } from 'react';
+import { FC, useState, SyntheticEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-import { resetPasswordApi } from '@api';
 import { ResetPasswordUI } from '@ui-pages';
+import { useDispatch, useSelector } from '../../services/store';
+import { resetPassword } from '../../services/slices/passwordSlice';
+import {
+  selectIsPasswordReset,
+  selectPasswordError
+} from '../../services/selectors/passwordSelectors';
 
 export const ResetPassword: FC = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
-  const [error, setError] = useState<Error | null>(null);
-
-  const handleSubmit = (e: SyntheticEvent) => {
-    e.preventDefault();
-    setError(null);
-    resetPasswordApi({ password, token })
-      .then(() => {
-        localStorage.removeItem('resetPassword');
-        navigate('/login');
-      })
-      .catch((err) => setError(err));
-  };
+  const error = useSelector(selectPasswordError);
+  const isPasswordReset = useSelector(selectIsPasswordReset);
 
   useEffect(() => {
-    if (!localStorage.getItem('resetPassword')) {
+    const resetPasswordFlag = localStorage.getItem('resetPassword');
+    if (!resetPasswordFlag) {
       navigate('/forgot-password', { replace: true });
     }
   }, [navigate]);
 
+  useEffect(() => {
+    if (isPasswordReset) {
+      localStorage.removeItem('resetPassword');
+      navigate('/login', { replace: true });
+    }
+  }, [isPasswordReset, navigate]);
+
+  const handleSubmit = (e: SyntheticEvent) => {
+    e.preventDefault();
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get('token') || token;
+    dispatch(resetPassword({ password, token: tokenFromUrl }));
+  };
+
   return (
     <ResetPasswordUI
-      errorText={error?.message}
+      errorText={error || ''}
       password={password}
       token={token}
       setPassword={setPassword}

@@ -1,6 +1,8 @@
 import React from 'react';
 import { BurgerIngredientUI } from '@ui';
 import type { Meta, StoryObj } from '@storybook/react';
+import { TIngredient } from '@utils-types';
+import { TBurgerIngredientUIProps } from '../components/ui/burger-ingredient/type';
 
 const meta = {
   title: 'Example/BurgerIngredient',
@@ -23,31 +25,36 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const ingredientMock: TIngredient = {
+  _id: '111',
+  name: 'Булка',
+  type: 'bun',
+  proteins: 12,
+  fat: 33,
+  carbohydrates: 22,
+  calories: 33,
+  price: 123,
+  image: '',
+  image_large: '',
+  image_mobile: ''
+};
+
+const locationStateMock: TBurgerIngredientUIProps['locationState'] = {
+  background: {
+    hash: '',
+    key: 'eitkep27',
+    pathname: '/',
+    search: '',
+    state: null
+  },
+  ingredient: ingredientMock
+};
+
 export const DefaultIngredient: Story = {
   args: {
-    ingredient: {
-      _id: '111',
-      name: 'Булка',
-      type: 'top',
-      proteins: 12,
-      fat: 33,
-      carbohydrates: 22,
-      calories: 33,
-      price: 123,
-      image: '',
-      image_large: '',
-      image_mobile: ''
-    },
+    ingredient: ingredientMock,
     count: 2,
-    locationState: {
-      background: {
-        hash: '',
-        key: 'eitkep27',
-        pathname: '/',
-        search: '',
-        state: null
-      }
-    },
+    locationState: locationStateMock,
     handleAdd: () => {}
   }
 };
